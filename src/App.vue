@@ -72,7 +72,7 @@
         >
           <el-icon class="el-icon--upload"><upload-filled /></el-icon>
           <div class="el-upload__text">
-            将文件拖拽到此处会点击 <em>读取文件</em>
+            <h3>将文件拖拽到此处或点击图标上传文件</h3>
           </div>
           <template #tip>
             <div class="el-upload__tip" style="text-align: center;">
@@ -107,7 +107,7 @@
           <h1 style="text-align: center">使用说明</h1>
           <div style="margin-left: 10px;">
             <h5>1.在OA系统中，将需要计算的工时复制到txt文本中；(参考src/assets/test.txt格式)</h5>
-            <h5>2.点击表格区域的读取文件按钮打开工时文件，或将工时文件拖拽至目标区域；</h5>
+            <h5>2.点击表格区域的上传文件按钮打开工时文件，或将工时文件拖拽至目标区域；</h5>
             <h5>3.将有上下班未打卡的时间补充完整(双击单元格更改)；</h5>
             <h5>4.点击计算工时按钮，查看工时统计信息。</h5>
           </div>
