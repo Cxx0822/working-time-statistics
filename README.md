@@ -1,5 +1,4 @@
-# estun-working-time-statistics
-
+# working-time-statistics
 ## Project setup
 ```
 npm install

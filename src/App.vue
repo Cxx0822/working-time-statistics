@@ -51,41 +51,63 @@
             </template>
           </el-table-column>
         </el-table>
+
+        <!-- 重置表格 -->
+        <el-button
+          style="position:absolute;left:12px;top:118px;z-index:2;"
+          type="primary"
+          v-show="workingTimeInfo.workTime.length !== 0"
+          :icon="UploadFilled"
+          circle
+          @click="workingTimeInfo.workTime.splice(0)"
+        />
+
+        <el-upload
+          v-show="workingTimeInfo.workTime.length === 0"
+          class="upload-demo"
+          drag
+          action="https://run.mocky.io/v3/9d059bf9-4660-45f2-925d-ce80ad6c4d15"
+          multiple
+          :on-change="handleChange"
+        >
+          <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+          <div class="el-upload__text">
+            将文件拖拽到此处会点击 <em>读取文件</em>
+          </div>
+          <template #tip>
+            <div class="el-upload__tip" style="text-align: center;">
+              <h3>请上传文本文件！</h3>
+            </div>
+          </template>
+        </el-upload>
       </div>
 
       <div class="workTime-use">
         <div class="function">
           <h1>功能模块</h1>
-          <el-button type="primary" @click="readFile">读取文件</el-button>
-
-          <input
-            v-if="workingTimeInfo.isShowUpLoadFile"
-            id="upLoadFile"
-            ref="upLoadFileRef"
-            type="file"
-            accept=".txt"
-            style="display: none"
-            @change="getWorkTimeData"
-          >
-
           <el-button type="primary" @click="calWorkTime" style="margin-left: 10px;">计算工时</el-button>
         </div>
 
         <div class="info">
           <h1>工时统计</h1>
-          当月工作时长：{{ workingTimeInfo.workTime.length }} 天
+          当月工作时长：<span>{{ workingTimeInfo.workTime.length }}</span> 天
           <br>
-          总工时：{{ workingTimeInfo.totalWorkTime}} 时
+          总工时：<span>{{ workingTimeInfo.totalWorkTime}}</span> 时
           <br>
-          日平均工时： {{ workingTimeInfo.dailyWorkTime }} 时
+          日平均工时： <span>{{ workingTimeInfo.dailyWorkTime }}</span> 时
           <br>
+        </div>
+
+        <div class="info" v-if="workingTimeInfo.isCalWorkTime">
+          <h3 v-if="parseFloat(workingTimeInfo.dailyWorkTime) >= 8.5" style="color: green;">您的工时已达到公司要求 请再接再厉！</h3>
+          <h3 v-else style="color: red;">您的工时未达到公司要求 请及时调整！</h3>
         </div>
 
         <div class="guide">
           <h1 style="text-align: center">使用说明</h1>
           <div style="margin-left: 10px;">
             <h5>1.在OA系统中，将需要计算的工时复制到txt文本中；(参考src/assets/test.txt格式)</h5>
-            <h5>2.点击读取文件按钮，打开工时文件；</h5>
+            <h5>2.点击表格区域的读取文件按钮打开工时文件，或将工时文件拖拽至目标区域；</h5>
             <h5>3.将有上下班未打卡的时间补充完整(双击单元格更改)；</h5>
             <h5>4.点击计算工时按钮，查看工时统计信息。</h5>
           </div>
@@ -96,12 +118,12 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, nextTick } from 'vue'
+import { reactive } from 'vue'
 
 import { ElMessage } from 'element-plus'
 import type { TableColumnCtx } from 'element-plus/es/components/table/src/table-column/defaults'
-
-const upLoadFileRef = ref()
+import { UploadFilled } from '@element-plus/icons-vue'
+import type { UploadProps, UploadFile } from 'element-plus'
 
 interface WorkTimeIt {
   index: number,
@@ -113,72 +135,64 @@ interface WorkTimeIt {
 }
 
 const workingTimeInfo = reactive({
-  isShowUpLoadFile: true,
   workTime: [] as Array<WorkTimeIt>,
   clickRow: 0, // 当前点击的行
   clickCell: 0, // 当前点击的列
   tabClickLabel: '', // 当前点击的列名
   totalWorkTime: '0',
-  dailyWorkTime: '0'
+  dailyWorkTime: '0',
+  isCalWorkTime: false
 })
 
-// 读取文件
-const readFile = () => {
-  workingTimeInfo.isShowUpLoadFile = true
-  // 确保模板加载完毕再执行
-  nextTick(() => {
-    upLoadFileRef.value.click()
-  })
-}
-
-// 读取blockly代码
-const getWorkTimeData = () => {
-  if (window.FileReader) {
-    // 获取读取的文件File对象
-    const file = upLoadFileRef.value.files[0]
-
-    // 判断是否是txt文件
-    if (file.name.split('.').slice(-1)[0] === 'txt') {
+// 处理上传文件功能
+const handleChange: UploadProps['onChange'] = (uploadFile: UploadFile) => {
+  if (uploadFile.name.split('.').slice(-1)[0] === 'txt') {
+    if (window.FileReader) {
+      // 获取读取的文件File对象
       var reader = new FileReader()
 
       // 文件读取成功完成时触发
       reader.onload = (event:any) => {
-        try {
-          // 清空表格数据
-          workingTimeInfo.workTime.splice(0)
-          // 读取工时统计文件中的每行数据
-          const workTimeRawDataList = event.target.result.split('\n')
-
-          for (let i = 0; i < workTimeRawDataList.length; i++) {
-            if (workTimeRawDataList[i] !== '') {
-              // 读取工时统计文件中每行中的每列数据
-              // 并添加至表格数据中
-              const workTimeRawItemDataList = workTimeRawDataList[i].split('\t')
-              workingTimeInfo.workTime.push({
-                index: i,
-                id: workTimeRawItemDataList[1],
-                name: workTimeRawItemDataList[2],
-                date: workTimeRawItemDataList[3],
-                startTime: workTimeRawItemDataList[4],
-                endTime: workTimeRawItemDataList[5]
-              })
-            }
-          }
-          workingTimeInfo.isShowUpLoadFile = false
-        } catch (error) {
-          ElMessage.error('无法正确解析该txt文件')
-        }
+        // 清空表格数据
+        workingTimeInfo.workTime.splice(0)
+        // 读取工时统计文件中的每行数据
+        const workTimeRawDataList = event.target.result.split('\n')
+        readWordTimeData(workTimeRawDataList)
       }
       // 将文件读取为文本
-      reader.readAsText(file)
+      reader.readAsText(uploadFile.raw as File)
     } else {
-      ElMessage.error('请选择正确的txt文件')
+      ElMessage.error('该浏览器不支持文件读取 请更改浏览器 推荐使用谷歌浏览器')
     }
   } else {
-    ElMessage.error('该浏览器不支持文件读取 请更改浏览器 推荐使用谷歌浏览器')
+    ElMessage.error('请选择正确的txt文件')
   }
 }
 
+// 解析工时统计数据
+const readWordTimeData = (workTimeRawDataList:Array<string>) => {
+  try {
+    for (let i = 0; i < workTimeRawDataList.length; i++) {
+      if (workTimeRawDataList[i] !== '') {
+      // 读取工时统计文件中每行中的每列数据
+      // 并添加至表格数据中
+        const workTimeRawItemDataList = workTimeRawDataList[i].split('\t')
+        workingTimeInfo.workTime.push({
+          index: i,
+          id: workTimeRawItemDataList[1],
+          name: workTimeRawItemDataList[2],
+          date: workTimeRawItemDataList[3],
+          startTime: workTimeRawItemDataList[4],
+          endTime: workTimeRawItemDataList[5]
+        })
+      }
+    }
+  } catch (error) {
+    ElMessage.error('无法正确解析该txt文件')
+  }
+}
+
+// 计算工时
 const calWorkTime = () => {
   if (workingTimeInfo.workTime.length === 0) {
     ElMessage.error('请先读取工时文件！')
@@ -188,11 +202,13 @@ const calWorkTime = () => {
   let totalWorkTime = 0
 
   for (let i = 0; i < workingTimeInfo.workTime.length; i++) {
+    // 判断是否有未完成的上下班打卡
     if (workingTimeInfo.workTime[i].startTime === ' ' || workingTimeInfo.workTime[i].endTime === ' ') {
       ElMessage.error('第' + (i + 1).toString() + '列有未完成的上下班打卡 请先双击表格填写完整！')
       return
     } else {
       const startTime = new Date(workingTimeInfo.workTime[i].date + ' ' + workingTimeInfo.workTime[i].startTime)
+      // 判断是否有上班打卡时间小于8：30
       if (startTime.getHours() <= 8 && startTime.getMinutes() <= 30) {
         workingTimeInfo.workTime[i].startTime = '08:30:00'
       }
@@ -212,6 +228,7 @@ const calWorkTime = () => {
 
   workingTimeInfo.totalWorkTime = (totalWorkTime / 60).toFixed(2)
   workingTimeInfo.dailyWorkTime = (totalWorkTime / 60 / workingTimeInfo.workTime.length).toFixed(2)
+  workingTimeInfo.isCalWorkTime = true
 }
 
 // 控制input显示 row 当前行 column 当前列
@@ -260,21 +277,25 @@ const updateData = () => {
     }
 
     .workTime-use {
-      height: 520px;
+      height: 550px;
       width: 520px;
       margin-left: 10px;
       border: 2px solid #008B93;
 
       .function {
-        text-align: center
+        text-align: center;
       }
 
       .info {
-        text-align: center
+        text-align: center;
+
+        span {
+          font-size: 24px;
+          font-weight: bold;
+        }
       }
 
     }
   }
 }
-
 </style>
