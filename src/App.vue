@@ -21,11 +21,26 @@
           </el-table-column>
           <el-table-column prop="id" align="center" label="工号" width="200" />
           <el-table-column prop="name" align="center" label="姓名" width="200" />
-          <el-table-column prop="date" align="center" label="日期" width="200" />
+          <el-table-column align="center" label="日期" width="200">
+            <template #default="scope">
+              <div v-if="scope.row.index === workingTimeInfo.clickRow && scope.column.index === workingTimeInfo.clickCell">
+                <el-input
+                  ref="dateRef"
+                  v-model="scope.row.date"
+                  maxlength="300"
+                  size="small"
+                  @keyup.enter="updateData"
+                  @blur="updateData"
+                />
+              </div>
+              <div v-else>{{ scope.row.date }}</div>
+            </template>
+          </el-table-column>
           <el-table-column align="center" label="上班时间" width="200">
             <template #default="scope">
               <div v-if="scope.row.index === workingTimeInfo.clickRow && scope.column.index === workingTimeInfo.clickCell">
                 <el-input
+                  ref="startTimeRef"
                   v-model="scope.row.startTime"
                   maxlength="300"
                   size="small"
@@ -54,12 +69,21 @@
 
         <!-- 重置表格 -->
         <el-button
-          style="position:absolute;left:12px;top:118px;z-index:2;"
+          style="position:absolute;left:11px;top:118px;z-index:2;"
           type="primary"
           v-show="workingTimeInfo.workTime.length !== 0"
           :icon="UploadFilled"
           circle
           @click="workingTimeInfo.workTime.splice(0)"
+        />
+
+        <!-- 添加数据 -->
+        <el-button
+          style="position:absolute;left:0px;top:160px;z-index:2;"
+          type="primary"
+          :icon="CirclePlusFilled"
+          circle
+          @click="addWorkTimeData()"
         />
 
         <el-upload
@@ -85,6 +109,8 @@
       <div class="workTime-use">
         <div class="function">
           <h1>功能模块</h1>
+          <el-button type="primary" @click="saveWorkTimeFromLocal" style="margin-left: 10px;">保存本地数据</el-button>
+          <el-button type="primary" @click="readWorkTimeFromLocal" style="margin-left: 10px;">读取本地数据</el-button>
           <el-button type="primary" @click="calWorkTime" style="margin-left: 10px;">计算工时</el-button>
         </div>
 
@@ -118,12 +144,14 @@
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { reactive, ref, nextTick } from 'vue'
 
 import { ElMessage } from 'element-plus'
 import type { TableColumnCtx } from 'element-plus/es/components/table/src/table-column/defaults'
-import { UploadFilled } from '@element-plus/icons-vue'
+import { UploadFilled, CirclePlusFilled } from '@element-plus/icons-vue'
 import type { UploadProps, UploadFile } from 'element-plus'
+
+const dateRef = ref()
 
 interface WorkTimeIt {
   index: number,
@@ -143,6 +171,8 @@ const workingTimeInfo = reactive({
   dailyWorkTime: '0',
   isCalWorkTime: false
 })
+
+let saveWorkTimeData = ''
 
 // 处理上传文件功能
 const handleChange: UploadProps['onChange'] = (uploadFile: UploadFile) => {
@@ -190,6 +220,27 @@ const readWordTimeData = (workTimeRawDataList:Array<string>) => {
   } catch (error) {
     ElMessage.error('无法正确解析该txt文件')
   }
+}
+
+// 增加工时数据
+const addWorkTimeData = () => {
+  workingTimeInfo.workTime.push(
+    {
+      index: workingTimeInfo.workTime.length + 1,
+      id: '',
+      name: '',
+      date: '',
+      startTime: '',
+      endTime: ''
+    }
+  )
+
+  workingTimeInfo.clickRow = workingTimeInfo.workTime.length - 1
+  workingTimeInfo.clickCell = 3
+
+  nextTick(() => {
+    dateRef.value.input.focus()
+  })
 }
 
 // 计算工时
@@ -254,6 +305,23 @@ const updateData = () => {
   workingTimeInfo.clickRow = 0
   workingTimeInfo.clickCell = 0
   workingTimeInfo.tabClickLabel = ''
+}
+
+const saveWorkTimeFromLocal = () => {
+  saveWorkTimeData = ''
+  for (let i = 0; i < workingTimeInfo.workTime.length; i++) {
+    saveWorkTimeData += workingTimeInfo.workTime[i].index + '\t' + workingTimeInfo.workTime[i].id + '\t' +
+    workingTimeInfo.workTime[i].name + '\t' + workingTimeInfo.workTime[i].date + '\t' + workingTimeInfo.workTime[i].startTime + '\t' +
+    workingTimeInfo.workTime[i].endTime + '\n'
+  }
+  localStorage.setItem('workTimeData', saveWorkTimeData)
+}
+
+const readWorkTimeFromLocal = () => {
+  workingTimeInfo.workTime.splice(0)
+  const workTimeData = localStorage.getItem('workTimeData') as string
+  const workTimeRawDataList = workTimeData.split('\n')
+  readWordTimeData(workTimeRawDataList)
 }
 </script>
 
