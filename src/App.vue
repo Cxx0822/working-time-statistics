@@ -143,6 +143,9 @@
                 <h5>2.点击表格区域的上传文件按钮打开工时文件，或将工时文件拖拽至目标区域；</h5>
                 <h5>3.将有上下班未打卡的时间补充完整(双击单元格更改)；</h5>
                 <h5>4.点击计算工时按钮，查看工时统计信息。</h5>
+                <h5>
+                  <el-link href="https://github.com/Cxx0822/working-time-statistics" target="_blank" type="primary">Github地址</el-link>
+                </h5>
               </div>
             </div>
           </div>
@@ -244,12 +247,21 @@ const resumeWorkTimeData = () => {
 
 // 增加工时数据
 const addWorkTimeData = () => {
+  if (workingTimeInfo.workTime.length !== 0 &&
+    (workingTimeInfo.workTime[workingTimeInfo.workTime.length - 1].startTime === '' ||
+    workingTimeInfo.workTime[workingTimeInfo.workTime.length - 1].endTime === '')) {
+    ElMessage.error('有未完成的上下班打卡！')
+    return
+  }
+
+  const date = new Date()
+
   workingTimeInfo.workTime.push(
     {
       index: workingTimeInfo.workTime.length + 1,
       id: '',
       name: '',
-      date: '',
+      date: date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate(),
       startTime: '',
       endTime: ''
     }
@@ -329,7 +341,28 @@ const calWorkTime = () => {
 
 // 控制input显示 row 当前行 column 当前列
 const tabClick = (row:WorkTimeIt, column:TableColumnCtx<WorkTimeIt>) => {
-  if (column.label === '上班时间' || column.label === '下班时间') {
+  if (column.label === '日期' || column.label === '上班时间' || column.label === '下班时间') {
+    const date = new Date()
+    switch (column.label) {
+      case '日期':
+        if (workingTimeInfo.workTime[row.index].date.trim() === '') {
+          workingTimeInfo.workTime[row.index].date = date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate()
+        }
+        break
+      case '上班时间':
+        if (workingTimeInfo.workTime[row.index].startTime.trim() === '') {
+          workingTimeInfo.workTime[row.index].startTime = '08:30:00'
+        }
+        break
+      case '下班时间':
+        if (workingTimeInfo.workTime[row.index].endTime.trim() === '') {
+          workingTimeInfo.workTime[row.index].endTime = '17:00:00'
+        }
+        break
+      default:
+        break
+    }
+
     workingTimeInfo.clickRow = row.index
     workingTimeInfo.clickCell = column.index as number
     workingTimeInfo.tabClickLabel = column.label
