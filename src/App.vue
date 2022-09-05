@@ -409,7 +409,7 @@ const readWorkTimeFromLocal = () => {
     return
   }
 
-  const workTimeData = localStorage.getItem('workTimeData')
+  const workTimeData = localStorage.getItem('workTimeData') as string
   const workTimeRawDataList = workTimeData.split('\n')
   readWordTimeData(workTimeRawDataList)
 }
